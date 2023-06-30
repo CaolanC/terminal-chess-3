@@ -38,6 +38,52 @@ map<char, int> updateAlphabetMap(map<char, int> alphabetMap, string letterNum)
     return alphabetMap;
 };
 
+class undoData
+{
+    public:
+    int origCollumn;
+    int origRow;
+    int destCollumn;
+    int destRow;
+    Piece origPiece;
+    Piece destPiece;
+    
+    void memorise(int collumnA, int rowA, int collumnB, int rowB, Piece pieceA, Piece pieceB)
+    {
+        origCollumn = collumnA;
+        origRow = rowA;
+        destCollumn = collumnB;
+        destRow = collumnA;
+        origPiece = pieceA;
+        destPiece = pieceB;
+    }
+
+    int ogC()
+    {
+        return origCollumn;
+    };
+    int ogR()
+    {
+        return origRow;
+    };
+    int deC()
+    {
+        return destCollumn;
+    };
+    int deR()
+    {
+        return destRow;
+    };
+    Piece ogP()
+    {
+        return origPiece;
+    }
+    Piece deP()
+    {
+        return destPiece;
+    };
+};
+
 class Move
 {
     public:
@@ -53,6 +99,12 @@ class Move
         destCollumn = b1;
         origRow = a2;
         destRow = b2;
+    };
+
+    vector<int> aqMoveData()
+    {
+        vector<int> data = {origCollumn, origRow, destCollumn, destRow};
+        return data;    
     };
 };
 
@@ -131,6 +183,26 @@ class Board
     int originOriginalIndex;
     int destinationOriginalIndex;
 
+    vector<int> enPassentSquare;
+    bool isEnPassentSquare = false;
+
+    void undoMove(undoData undo)
+    {
+        board[undo.ogC()][undo.ogR()] = undo.ogP();
+        board[undo.deC()][undo.deR()] = undo.deP();
+    };
+
+    void clearEnPassentSquare()
+    {
+        enPassentSquare = {};
+        isEnPassentSquare = false;
+    };
+
+    void addEnPassentSquare(int collumn, int row)
+    {
+        enPassentSquare = {collumn, row};
+    };
+
     Piece board[8][8];
 
         void createBoard() {
@@ -184,7 +256,7 @@ class Board
         };
 
         bool isInBoard(int row, int collumn) {
-            if ((row >= 0 && row < 8) && (collumn >= 0 && row < 8))
+            if ((row >= 0 && row < 8) && (collumn >= 0 && collumn < 8))
             {
                 return true;
             }
@@ -289,16 +361,40 @@ class Board
 
                     if ((white == false) && !(Empty(i, j)))
                     {
-
-
                         Piece currentPiece = board[i][j];
 
-                        if (currentPiece.piece_name == 1 && currentPiece.white == white)
+                        int currentName = currentPiece.piece_name;
+                        bool currentBool = currentPiece.white;
+
+                        if (currentName == 1 && currentBool == white)
                         {
                             pieceMoves = pawn_movement(i, j, white);
-                        } else if ((currentPiece.piece_name == 2) && (currentPiece.white == white))
+
+                        } else if ((currentName == 2) && (currentBool == white))
                         {
                             pieceMoves = knight_movement(i, j, white);
+
+                        } else if ((currentName == 3) && (currentBool == white))
+                        {
+                            pieceMoves = rook_movement(i, j, white);
+
+                        } else if ((currentName == 4) && (currentBool == white))
+                        {
+                            pieceMoves = bishop_movement(i, j, white);
+
+                        } else if ((currentName == 5) && (currentBool == white))
+                        {
+                            pieceMoves = rook_movement(i, j, white);
+
+                            vector<Move> tempMoves = bishop_movement(i, j, white);
+
+                            for (Move i: tempMoves) {
+                                pieceMoves.push_back(i);
+                            }
+                        } else if ((currentName == 6) && (currentBool == white))
+                        {
+                            pieceMoves = king_movement(i, j, white);
+
                         };
                     };
                     for (Move i : pieceMoves)
@@ -308,11 +404,11 @@ class Board
                 };
             };
 
-            cout << "Printing Moves:\n";
-            for (Move i : moves)
-            {
-                cout << i.origCollumn << "," << i.origRow << " - " << i.destCollumn << "," << i.destRow << "\n";
-            };
+            // cout << "Printing Moves:\n";
+            // for (Move i : moves)
+            // {
+            //     cout << i.origCollumn << "," << i.origRow << " - " << i.destCollumn << "," << i.destRow << "\n";
+            // };
             return moves;            
         };
 
@@ -372,8 +468,20 @@ class Board
                 {
                     Move move;
                     move.moveData(collumn, row, collumn + (2 * dir), row);
+                    addEnPassentSquare(collumn + (2 * dir), row);
+                    isEnPassentSquare = true;
                     pMoves.push_back(move);
                 };
+            } else if (isEnPassentSquare && collumn + (1 * dir) == enPassentSquare[0] && row + 1 ==  enPassentSquare[1])
+            {
+                Move move;
+                move.moveData(collumn, row, collumn + (1 * dir), row + 1);
+                pMoves.push_back(move);
+            } else if (isEnPassentSquare && collumn + (1 * dir) == enPassentSquare[0] && row - 1 ==  enPassentSquare[1])
+            {
+                Move move;
+                move.moveData(collumn, row, collumn + (1 * dir), row - 1);
+                pMoves.push_back(move);
             };
 
             return pMoves;
@@ -425,7 +533,7 @@ class Board
                 kMove.moveData(collumn, row, collumn - 2, row - 1);
                 nMoves.push_back(kMove);
             };
-            if (isInBoard(collumn -1, row + 2) && (Empty(collumn - 1, row + 2) || indexColor(collumn - 1, row + 2) != white))
+            if (isInBoard(collumn - 1, row + 2) && (Empty(collumn - 1, row + 2) || indexColor(collumn - 1, row + 2) != white))
             {
                 Move kMove;
                 kMove.moveData(collumn, row, collumn - 1, row + 2);
@@ -445,7 +553,7 @@ class Board
         {
             vector<Move> rMoves;
 
-            // Up movment
+            // Right movment
 
             for (int i = row + 1; i < 8; i++)
             {
@@ -468,7 +576,7 @@ class Board
                 };
             };
 
-            // Down movement
+            // Left movement
 
             for (int i = row - 1; i >= 0; i--)
             {
@@ -491,20 +599,20 @@ class Board
                 };
             };
 
-            // Right Movement
+            // Down Movement
             for (int i = collumn + 1; i < 8; i++)
             {
                 Piece currentPiece = board[i][row];
                 if (Empty(i, row))
                 {
                     Move rMove;
-                    rMove.moveData(i, row, i, row);
+                    rMove.moveData(collumn, row, i, row);
                     rMoves.push_back(rMove);
 
                 } else if (currentPiece.white != white)
                 {
                     Move rMove;
-                    rMove.moveData(i, row, i, row);
+                    rMove.moveData(collumn, row, i, row);
                     rMoves.push_back(rMove);                    
                     break;
                 } else
@@ -513,7 +621,7 @@ class Board
                 };
             };
 
-            // Left Movement
+            // Up Movement
 
             for (int i = collumn - 1; i >= 0; i--)
             {
@@ -521,13 +629,13 @@ class Board
                 if (Empty(i, row))
                 {
                     Move rMove;
-                    rMove.moveData(i, row, i, row);
+                    rMove.moveData(collumn, row, i, row);
                     rMoves.push_back(rMove);
 
                 } else if (currentPiece.white != white)
                 {
                     Move rMove;
-                    rMove.moveData(i, row, i, row);
+                    rMove.moveData(collumn, row, i, row);
                     rMoves.push_back(rMove);                    
                     break;
                 } else
@@ -535,7 +643,6 @@ class Board
                     break;
                 };
             };
-
 
             return rMoves;
         };
@@ -552,13 +659,13 @@ class Board
                 if (Empty(collumn - i, row + i))
                 {
                     Move bMove;
-                    bMove.moveData(i, row, collumn - i, row + i);
+                    bMove.moveData(collumn, row, collumn - i, row + i);
                     bMoves.push_back(bMove);
 
                 } else if (currentPiece.white != white)
                 {
                     Move bMove;
-                    bMove.moveData(i, row, collumn - i, row + i);
+                    bMove.moveData(collumn, row, collumn - i, row + i);
                     bMoves.push_back(bMove);                    
                     break;
                 } else
@@ -575,13 +682,13 @@ class Board
                 if (Empty(collumn + i, row + i))
                 {
                     Move bMove;
-                    bMove.moveData(i, row, collumn + i, row + i);
+                    bMove.moveData(collumn, row, collumn + i, row + i);
                     bMoves.push_back(bMove);
 
                 } else if (currentPiece.white != white)
                 {
                     Move bMove;
-                    bMove.moveData(i, row, collumn + i, row + i);
+                    bMove.moveData(collumn, row, collumn + i, row + i);
                     bMoves.push_back(bMove);                    
                     break;
                 } else
@@ -590,21 +697,21 @@ class Board
                 };                
             };
 
-            //Up left movement
+            // Up left movement
 
-            for (int i = 1; collumn - i >= 0 && row - i < 8; i++)
+            for (int i = 1; collumn - i >= 0 && row - i >= 0; i++)
             {
                 Piece currentPiece = board[collumn - i][row - i];
-                if (Empty(collumn - i, row + i))
+                if (Empty(collumn - i, row - i))
                 {
                     Move bMove;
-                    bMove.moveData(i, row, collumn - i, row - i);
+                    bMove.moveData(collumn, row, collumn - i, row - i);
                     bMoves.push_back(bMove);
 
                 } else if (currentPiece.white != white)
                 {
                     Move bMove;
-                    bMove.moveData(i, row, collumn - i, row - i);
+                    bMove.moveData(collumn, row, collumn - i, row - i);
                     bMoves.push_back(bMove);                    
                     break;
                 } else
@@ -618,16 +725,16 @@ class Board
             for (int i = 1; collumn + i < 8 && row - i >= 0; i++)
             {
                 Piece currentPiece = board[collumn + i][row - i];
-                if (Empty(collumn + i, row + i))
+                if (Empty(collumn + i, row - i))
                 {
                     Move bMove;
-                    bMove.moveData(i, row, collumn + i, row - i);
+                    bMove.moveData(collumn, row, collumn + i, row - i);
                     bMoves.push_back(bMove);
 
                 } else if (currentPiece.white != white)
                 {
                     Move bMove;
-                    bMove.moveData(i, row, collumn + i, row - i);
+                    bMove.moveData(collumn, row, collumn + i, row - i);
                     bMoves.push_back(bMove);                    
                     break;
                 } else
@@ -640,8 +747,44 @@ class Board
 
         };
 
+    int totalMoves = 0;
 
+    int moveGeneration(int max_depth = 2, int depth = 0, bool white = true)
+    {
+        if (depth == max_depth)
+        {
+            return 1;
+        };
 
+        vector<Move> legalMVs = legalMoves(white);
+        for (Move move : legalMVs)
+        {
+
+            vector<int> coordinates = move.aqMoveData();
+
+            undoData undo;
+            undo.memorise(coordinates[0], coordinates[1], coordinates[2], coordinates[3], board[coordinates[0]][coordinates[1]], board[coordinates[2]][coordinates[3]]);
+
+            doMove(coordinates[0], coordinates[1], coordinates[2], coordinates[3]);
+            printBoard();
+            cout << "\n";
+            
+            if (white) {
+                white = false;
+            } else {
+                white = true;
+            }
+            totalMoves += moveGeneration(max_depth, depth + 1, white);
+            undoMove(undo);
+        };
+        if (white) {
+            white = false;
+        } else {
+            white = true;
+        }
+
+        return 1;
+    };
 };
 
 class LegalMove
@@ -745,6 +888,14 @@ void test()
     cout << a;
 }
 
+
+class chessEngine
+{
+    public:
+
+
+};
+
 int main(){
     Board board;
 
@@ -753,25 +904,18 @@ int main(){
     board.createBoard();
     board.printBoard();
 
-    string input;
-    cin >> input;
+    // string input;
+    // cin >> input;
 
-    int originCoordinateA;
-    int originCoordinateB;
-    int DestinationCoordinateA;
-    int DestinationCoordinateB;  
+    // int originCoordinateA;
+    // int originCoordinateB;
+    // int DestinationCoordinateA;
+    // int DestinationCoordinateB;  
 
-    tie(originCoordinateA, originCoordinateB, DestinationCoordinateA, DestinationCoordinateB) = convertCoordinates(input);
+    // tie(originCoordinateA, originCoordinateB, DestinationCoordinateA, DestinationCoordinateB) = convertCoordinates(input);
 
-    board.doMove(originCoordinateA, originCoordinateB, DestinationCoordinateA, DestinationCoordinateB);
-    board.printBoard();
-    board.legalMoves(true);
-
-    // string a = "a";
-    // cout << int(a[0]);
-
-
-    //int index = $d\n, hello['e']
-
-    //This is a comment
+    // board.doMove(originCoordinateA, originCoordinateB, DestinationCoordinateA, DestinationCoordinateB);
+    // board.printBoard();
+    board.moveGeneration();
+    cout << board.totalMoves;
 }
