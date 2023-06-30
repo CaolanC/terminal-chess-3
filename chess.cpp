@@ -974,6 +974,8 @@ int main(){
     cout << board.totalMoves;
    
     return 0;
-    // alpha beta
+
+    // main
+    // alpha_beta
 
 }
