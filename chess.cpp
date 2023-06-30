@@ -11,6 +11,8 @@
 #include <vector>
 #include <cmath>
 #include <string>
+#include <chrono>
+
 
 using namespace std;
 
@@ -25,6 +27,7 @@ map<char, int> alphabetMap = {
     {'h', 7}
 };
 
+
 map<char, int> updateAlphabetMap(map<char, int> alphabetMap, string letterNum)
 {
     for(auto i = alphabetMap.begin(); i != alphabetMap.end(); ++i)
@@ -36,6 +39,80 @@ map<char, int> updateAlphabetMap(map<char, int> alphabetMap, string letterNum)
     };
 
     return alphabetMap;
+};
+
+class Piece
+{
+    public:
+
+    int piece_name;
+    string unicode_char;
+    bool white;
+    bool hasMoved;
+    int piece_value;
+    
+    //wchar_t unicode_char;
+
+    void printPiece(){
+        cout << piece_name;
+    };
+
+    void create_piece(int piece, bool color)
+    {
+        piece_name = piece;
+        white = color;
+        hasMoved = false;
+        switch (piece_name) {
+
+            case 0:
+
+            piece_value = 0;
+            unicode_char = "  ";
+            //unicode_char = L'\u265c';
+            break;
+
+            case 1:
+            //unicode_char = L'\u265c';
+            piece_value = 1;
+            unicode_char = "P ";
+            
+            break;
+
+            case 2:
+
+            piece_value = 3;
+            unicode_char = "N ";
+            //unicode_char = L'\u265c';
+            break;
+
+            case 3:
+            
+            piece_value = 5;
+            unicode_char = "R ";
+
+            break;
+
+            case 4:
+
+            piece_value = 3;
+            unicode_char = "B ";
+            //unicode_char = L'\u265c';
+            break;
+
+            case 5:
+
+            piece_value = 9;
+            unicode_char = "Q ";
+            //unicode_char = L'\u265c';
+             break;
+
+            case 6:
+
+            piece_value = 0;
+            unicode_char = "K ";
+            //unicode_char = L'\u265c';
+        } 
+    };
 };
 
 class undoData
@@ -53,7 +130,7 @@ class undoData
         origCollumn = collumnA;
         origRow = rowA;
         destCollumn = collumnB;
-        destRow = collumnA;
+        destRow = rowB;
         origPiece = pieceA;
         destPiece = pieceB;
     }
@@ -108,71 +185,6 @@ class Move
     };
 };
 
-class Piece
-{
-    public:
-
-    int piece_name;
-    string unicode_char;
-    bool white;
-    bool hasMoved;
-    
-    //wchar_t unicode_char;
-
-    void printPiece(){
-        cout << piece_name;
-    };
-
-    void create_piece(int piece, bool color)
-    {
-        piece_name = piece;
-        white = color;
-        hasMoved = false;
-        switch (piece_name) {
-
-            case 0:
-
-            unicode_char = "  ";
-            //unicode_char = L'\u265c';
-            break;
-
-            case 1:
-            //unicode_char = L'\u265c';
-            unicode_char = "P ";
-            
-            break;
-
-            case 2:
-
-            unicode_char = "N ";
-            //unicode_char = L'\u265c';
-            break;
-
-            case 3:
-
-            unicode_char = "R ";
-
-            break;
-
-            case 4:
-
-            unicode_char = "B ";
-            //unicode_char = L'\u265c';
-            break;
-
-            case 5:
-
-            unicode_char = "Q ";
-            //unicode_char = L'\u265c';
-             break;
-
-            case 6:
-
-            unicode_char = "K ";
-            //unicode_char = L'\u265c';
-        } 
-    };
-};
 
 class Board
 {
@@ -747,9 +759,30 @@ class Board
 
         };
 
+    int evaluate()
+    {
+        int total = 0;
+        for (int i = 0; i < 8; i++)
+        {
+            for (int j = 0; j < 8; j++)
+            {
+                Piece current_piece = board[i][j];
+                if (current_piece.white)
+                {
+                    total += current_piece.piece_value;
+                } else 
+                {
+                    total -= current_piece.piece_value;
+                };
+            };
+        };
+
+        return total;
+    };
+
     int totalMoves = 0;
 
-    int moveGeneration(int max_depth = 2, int depth = 0, bool white = true)
+    int moveGeneration(int max_depth, int depth, bool white)
     {
         if (depth == max_depth)
         {
@@ -766,24 +799,18 @@ class Board
             undo.memorise(coordinates[0], coordinates[1], coordinates[2], coordinates[3], board[coordinates[0]][coordinates[1]], board[coordinates[2]][coordinates[3]]);
 
             doMove(coordinates[0], coordinates[1], coordinates[2], coordinates[3]);
-            printBoard();
-            cout << "\n";
-            
-            if (white) {
-                white = false;
-            } else {
-                white = true;
-            }
-            totalMoves += moveGeneration(max_depth, depth + 1, white);
+            // printBoard();
+            // string input;
+            // cin >> input;
+            // cout << "\n";
+
+            int eval = evaluate();
+
+            totalMoves += moveGeneration(max_depth, depth + 1, !(white));
             undoMove(undo);
         };
-        if (white) {
-            white = false;
-        } else {
-            white = true;
-        }
 
-        return 1;
+        return 0;
     };
 };
 
@@ -897,12 +924,20 @@ class chessEngine
 };
 
 int main(){
+
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::duration;
+    using std::chrono::milliseconds;
+
+    auto t1 = high_resolution_clock::now();
+
     Board board;
 
     // test();
 
     board.createBoard();
-    board.printBoard();
+    // board.printBoard();
 
     // string input;
     // cin >> input;
@@ -916,6 +951,21 @@ int main(){
 
     // board.doMove(originCoordinateA, originCoordinateB, DestinationCoordinateA, DestinationCoordinateB);
     // board.printBoard();
-    board.moveGeneration();
+    // undoData falseUndo;
+
+    board.moveGeneration(5, 0, true);
+    auto t2 = high_resolution_clock::now();
+
+    /* Getting number of milliseconds as an integer. */
+    auto ms_int = duration_cast<milliseconds>(t2 - t1);
+
+    /* Getting number of milliseconds as a double. */
+    duration<double, std::milli> ms_double = t2 - t1;
+
+    std::cout << ms_int.count() << "ms\n";
+    std::cout << ms_double.count() << "ms\n";
+   
     cout << board.totalMoves;
+   
+    return 0;
 }
