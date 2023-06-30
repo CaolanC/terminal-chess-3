@@ -12,6 +12,7 @@
 #include <cmath>
 #include <string>
 #include <chrono>
+#include <cmath>
 
 
 using namespace std;
@@ -789,6 +790,11 @@ class Board
             return 1;
         };
 
+        if (white)
+        {
+            long double besVal = -INFINITY;
+        };
+
         vector<Move> legalMVs = legalMoves(white);
         for (Move move : legalMVs)
         {
@@ -968,4 +974,6 @@ int main(){
     cout << board.totalMoves;
    
     return 0;
+    // alpha beta
+
 }
