@@ -790,11 +790,6 @@ class Board
             return 1;
         };
 
-        if (white)
-        {
-            long double besVal = -INFINITY;
-        };
-
         vector<Move> legalMVs = legalMoves(white);
         for (Move move : legalMVs)
         {
@@ -959,7 +954,7 @@ int main(){
     // board.printBoard();
     // undoData falseUndo;
 
-    board.moveGeneration(5, 0, true);
+    board.moveGeneration(4, 0, true);
     auto t2 = high_resolution_clock::now();
 
     /* Getting number of milliseconds as an integer. */
@@ -975,6 +970,6 @@ int main(){
    
     return 0;
 
-    // This is the fucking alpha branch.
+    // This is the fucking main branch.
 
 }
