@@ -17,32 +17,7 @@
 
 using namespace std;
 
-map<char, int> alphabetMap = {
-    {'a', 0}, //  + (letterNum - 1) * 8},
-    {'b', 1},
-    {'c', 2},
-    {'d', 3},
-    {'e', 4},
-    {'f', 5},
-    {'g', 6},
-    {'h', 7}
-};
-
-
-map<char, int> updateAlphabetMap(map<char, int> alphabetMap, string letterNum)
-{
-    for(auto i = alphabetMap.begin(); i != alphabetMap.end(); ++i)
-    {
-        if(i -> first == letterNum[0])
-        {
-            alphabetMap[letterNum[0]] = alphabetMap[letterNum[0]] + ((int)letterNum[1] - '0' - 1) * 8;
-        };
-    };
-
-    return alphabetMap;
-};
-
-class Piece
+class Piece                                 
 {
     public:
 
@@ -58,7 +33,7 @@ class Piece
         cout << piece_name;
     };
 
-    void create_piece(int piece, bool color)
+    void create_piece(int piece, bool color)        // piece is an integer. The int correlates to a specific piece with data that defines its value,symbol and color on the board.
     {
         piece_name = piece;
         white = color;
@@ -116,7 +91,23 @@ class Piece
     };
 };
 
-class undoData
+class Node
+{
+    Node* childNode;
+    double evaluation;
+
+    void child(Node* child)
+    {
+        this->childNode = child;
+    };
+
+    Node* getChild()
+    {
+        return childNode;
+    };
+};
+
+class undoData                              // Holds data for undoing moves
 {
     public:
     int origCollumn;
@@ -205,7 +196,7 @@ class Board
         board[undo.deC()][undo.deR()] = undo.deP();
     };
 
-    void clearEnPassentSquare()
+    void clearEnPassentSquare()              
     {
         enPassentSquare = {};
         isEnPassentSquare = false;
@@ -276,7 +267,7 @@ class Board
             return false;
         };
 
-        bool Empty(int collumn, int row){
+        bool Empty(int collumn, int row){                   //If a coordinate in the board is empty return true
             if (board[collumn][row].piece_name) {
                 return false;
             };
@@ -323,8 +314,8 @@ class Board
             board[destCollumn][destRow].hasMoved = true;
         };
 
-        vector<Move> legalMoves(bool white) {
-            vector<Move> moves;
+        vector<Move> legalMoves(bool white) {                   // Returns all of the legal moves in the board. See the move class to see how the moveData is stored.
+            vector<Move> moves;     
 
             for (int i = 0; i < 8; i++)
             {
@@ -760,9 +751,23 @@ class Board
 
         };
 
-    int evaluate()
+    bool isInBoardCentre(int row, int collumn)
     {
-        int total = 0;
+        for(int i = 2; i <= 5; i++)
+        {
+            for (int j = 2; j <= 5; j++)
+            {
+                if (i == row && j == collumn)
+                {
+                    return true;
+                };
+            };
+        };
+    };
+
+    double evaluate()                  // Evaluates the current position of the board.
+    {
+        double total = 0;
         for (int i = 0; i < 8; i++)
         {
             for (int j = 0; j < 8; j++)
@@ -771,9 +776,29 @@ class Board
                 if (current_piece.white)
                 {
                     total += current_piece.piece_value;
+                    if (current_piece.piece_name == 1)
+                    {
+                        total += (6 - i) * 0.3;
+                    } else if (current_piece.piece_name == 2)
+                    {
+                        if (isInBoardCentre(i ,j))
+                        {
+                            total += 0.4;
+                        };
+                    };
                 } else 
                 {
                     total -= current_piece.piece_value;
+                    if (current_piece.piece_name == 1)
+                    {
+                        total -= (i - 1) * 0.3;
+                    } else if (current_piece.piece_name == 2)
+                    {
+                        if (isInBoardCentre(i ,j))
+                        {
+                            total -= 0.4;
+                        };
+                    };;
                 };
             };
         };
@@ -783,14 +808,25 @@ class Board
 
     int totalMoves = 0;
 
-    int moveGeneration(int max_depth, int depth, bool white)
+    double moveGeneration(int max_depth, int depth, bool white)        // Chess engine test
     {
         if (depth == max_depth)
         {
-            return 1;
+            totalMoves += 1;
+            return evaluate();
         };
 
         vector<Move> legalMVs = legalMoves(white);
+
+        double bestVal;
+        if (white)
+        {
+            bestVal = -INFINITY;
+        } else {
+            bestVal = INFINITY;
+        };
+
+
         for (Move move : legalMVs)
         {
 
@@ -800,69 +836,31 @@ class Board
             undo.memorise(coordinates[0], coordinates[1], coordinates[2], coordinates[3], board[coordinates[0]][coordinates[1]], board[coordinates[2]][coordinates[3]]);
 
             doMove(coordinates[0], coordinates[1], coordinates[2], coordinates[3]);
+
+            double eval = moveGeneration(max_depth, depth + 1, !(white));
+
+            if (white && eval > bestVal)
+            {
+                bestVal = eval;
+            } else if (!(white) && eval < bestVal) {
+                bestVal = eval;
+            };
+
             // printBoard();
             // string input;
             // cin >> input;
             // cout << "\n";
-
-            int eval = evaluate();
-
-            totalMoves += moveGeneration(max_depth, depth + 1, !(white));
+        
             undoMove(undo);
         };
 
-        return 0;
+        // cout << bestVal << " <- trial eval\n";
+        return bestVal;
     };
 };
 
-class LegalMove
-{
-    public:
-    string origin;
-    string destination;
-    LegalMove(string Origin, string Destination)
-    {
-        origin = Origin;
-        destination = Destination;
-    };
 
-    string thisDestination()
-    {
-        return destination;
-    };
-
-    string thisOrigin()
-    {
-        return origin;
-    };
-};
-
-map<string, int> doMove(void *mv, map<string, int> board)
-{   
-    
-    return board;
-};
-
-// map<string, int> map;
-
-// e2 (in the python dictionary) -->  52 (in the array)
-
-// int coordToInt(string coord, int *arr)
-// {
-//     for(int i = 0; i < 8; i++)
-//     {
-//         if(i == 8 - coord[1])
-//         {
-//             for(int j = 0; j < 8; j++)
-//             {
-//                 if(j == 4) printf("%d\n", arr[i][j]);
-//             };
-//         };
-        
-//     };
-// };
-
-tuple<int, int> convertCoordinate(string coord)
+tuple<int, int> convertCoordinate(string coord)         // Converts the players inputs to coordinates on the board.
 {
     int letter = (coord[0] - 97);
     int number = 7 - (coord[1] - 49);
@@ -895,34 +893,6 @@ tuple<int, int, int, int> convertCoordinates(string coords) {
 //     };
 // }
 
-void test(char **arr)
-{
-    for(int i = 0; i < 8; i++)
-    {
-        if(i == 8-2)
-        {
-            for(int j = 0; j < 8; j++)
-            {
-                if(j == 4) printf("%d\n", arr[i][j]);
-            };
-        };
-        
-    };
-};
-
-void test()
-{
-    float a = floor(7 / 8);
-    cout << a;
-}
-
-
-class chessEngine
-{
-    public:
-
-
-};
 
 int main(){
 
@@ -954,7 +924,7 @@ int main(){
     // board.printBoard();
     // undoData falseUndo;
 
-    board.moveGeneration(4, 0, true);
+    double bestEvaluation = board.moveGeneration(4, 0, false);
     auto t2 = high_resolution_clock::now();
 
     /* Getting number of milliseconds as an integer. */
@@ -966,8 +936,13 @@ int main(){
     std::cout << ms_int.count() << "ms\n";
     std::cout << ms_double.count() << "ms\n";
    
-    cout << board.totalMoves;
+    cout << board.totalMoves << " <- TOTAL MOVES\n";
    
+    cout << bestEvaluation << " <- BEST EVAL\n";
+
+    cout << board.evaluate() << " <- EVAL\n";
+    board.printBoard();
+
     return 0;
 
     // This is the fucking main branch.
